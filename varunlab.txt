@@ -1,0 +1,319 @@
+q4.
+import tensorflow as tf
+import numpy as np
+
+# Load dataset with validation split
+data = tf.keras.preprocessing.image_dataset_from_directory(
+    "EBHI-SEG",
+    image_size=(224, 224),
+    batch_size=32,
+    validation_split=0.2,
+    subset="training",
+    seed=123
+)
+
+val_data = tf.keras.preprocessing.image_dataset_from_directory(
+    "EBHI-SEG",
+    image_size=(224, 224),
+    batch_size=32,
+    validation_split=0.2,
+    subset="validation",
+    seed=123
+)
+
+class_names = data.class_names
+
+# Improve performance
+AUTOTUNE = tf.data.AUTOTUNE
+data = data.prefetch(AUTOTUNE)
+val_data = val_data.prefetch(AUTOTUNE)
+
+# CNN Model
+model = tf.keras.Sequential([
+    tf.keras.layers.Rescaling(1./255),
+
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+
+    tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(),
+
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(6, activation='softmax')
+])
+
+model.compile(
+    optimizer='adam',
+    loss='sparse_categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+model.fit(data, validation_data=val_data, epochs=10)
+
+
+img = tf.keras.utils.load_img("lowgrade.png", target_size=(224,224))
+img_array = tf.keras.utils.img_to_array(img)
+img_array = np.expand_dims(img_array, axis=0)
+
+pred = model.predict(img_array)
+
+print("Prediction:", class_names[np.argmax(pred)])
+q1.
+import pandas as pd
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
+
+df=pd.read_csv("flower_dataset.csv")
+print(df.info())
+print(df.describe)
+print(df.head())
+
+df=df.dropna()
+
+if 'fragnance' in df.columns:
+    df['fragrance'] = df['fragnance'].str.lower()
+le=LabelEncoder()    
+for col in df.columns:
+    if df[col].dtype=='object' and  col!='fragnance':
+       df[col]=le.fit_transform(df[col])
+num=df.select_dtypes(include=['int64', 'float64']).columns
+if len(num) > 0:
+    df[num].hist(figsize=(8,6))
+    plt.suptitle("Histogram of Numerical Features")
+    plt.show()
+
+if len(num)>1:
+    sns.heatmap(df[num].corr(),annot=True)
+    plt.show()
+sns.pairplot(df[num])    
+plt.show()
+q2.
+logis-reg
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Load dataset
+df = pd.read_csv("dataset.csv")
+
+# Identify categorical columns
+cat_cols = df.select_dtypes(include=['object']).columns
+
+# Encode categorical columns
+le = LabelEncoder()
+for col in cat_cols:
+    df[col] = le.fit_transform(df[col])
+
+# Split features and target
+X = df.drop("Result", axis=1)
+y = df["Result"]
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Scale numerical features
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Model
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Prediction
+y_pred = model.predict(X_test)
+
+# Evaluation
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("Classification Report:\n", classification_report(y_test, y_pred))
+clustering:
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
+# Load dataset
+df = pd.read_csv("flower_dataset.csv",encoding="ISO-8859-1")
+
+# Handle missing values
+df = df.fillna(df.mean(numeric_only=True))
+df = df.fillna(df.mode().iloc[0])
+
+# Encode categorical columns
+for col in df.select_dtypes(include='object').columns:
+    df[col] = LabelEncoder().fit_transform(df[col])
+
+# Features
+X = df.values
+
+# Scaling
+X_scaled = StandardScaler().fit_transform(X)
+
+# K-Means clustering
+kmeans = KMeans(n_clusters=3, random_state=42)
+df['Cluster'] = kmeans.fit_predict(X_scaled)
+
+print(df.head())
+
+# -------------------------------
+# VISUALIZATION (PCA to 2D)
+# -------------------------------
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+plt.scatter(X_pca[:, 0], X_pca[:, 1], c=df['Cluster'])
+plt.title("K-Means Clustering Visualization")
+plt.xlabel("PCA 1")
+plt.ylabel("PCA 2")
+plt.show()
+
+regression:tree
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+# ==============================
+# 2. Load Dataset
+# ==============================
+df = pd.read_csv("flower_dataset.csv")
+
+# ==============================
+# 3. Basic EDA
+# ==============================
+print("First 5 rows:\n", df.head())
+print("\nDataset Info:")
+df.info()
+print("\nMissing Values:\n", df.isnull().sum())
+
+# ==============================
+# 4. Preprocessing
+# ==============================
+
+# Handle missing values for numerical columns
+num_cols = df.select_dtypes(include=['int64','float64']).columns
+imputer = SimpleImputer(strategy='mean')
+df[num_cols] = imputer.fit_transform(df[num_cols])
+
+# Encode categorical data (species, size, fragrance)
+cat_cols = df.select_dtypes(include=['object']).columns
+le = LabelEncoder()
+for col in cat_cols:
+    df[col] = le.fit_transform(df[col])
+
+# ==============================
+# 5. Features & Target
+# ==============================
+# The target variable for this dataset is height_cm
+target_col = 'height_cm'   
+
+X = df.drop(target_col, axis=1)
+y = df[target_col]
+
+# ==============================
+# 6. Train-Test Split
+# ==============================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+
+# ==============================
+# 7. Visualization
+# ==============================
+
+# Histogram
+df.hist(figsize=(10, 8))
+plt.tight_layout()
+plt.savefig('histograms.png')
+plt.show()
+
+# Heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(df.corr(), annot=True, cmap='coolwarm')
+plt.title("Correlation Heatmap")
+plt.savefig('heatmap.png')
+plt.show()
+
+# ==============================
+# 8. Decision Tree Regression
+# ==============================
+model = DecisionTreeRegressor(random_state=42)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+# ==============================
+# 9. Evaluation
+# ==============================
+print("\n--- Decision Tree Regression ---")
+print("Mean Squared Error:", mean_squared_error(y_test, y_pred))
+print("R2 Score:", r2_score(y_test, y_pred))
+
+# ==============================
+# 10. Final Result
+# ==============================
+print("\nFinal R2 Score:", r2_score(y_test, y_pred))
+
+q3.nlp
+# Import libraries
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import re
+import numpy as np
+import sys
+
+# Step 1: Get file path from command line (instead of GUI dialog)
+
+
+file = sys.argv[1]
+
+# Step 2: Read file
+
+with open(file, 'r', encoding='utf-8') as f:
+    docs = f.readlines()
+
+
+# Step 3: Preprocess text
+clean_docs = []
+for d in docs:
+    d = d.lower()                          # convert to lowercase
+    d = re.sub(r'[^a-z ]', '', d)          # remove symbols
+    clean_docs.append(d)
+
+# Step 4: TF-IDF conversion
+vec = TfidfVectorizer()
+mat = vec.fit_transform(clean_docs)
+
+# Step 5: Get query
+query = input("Enter query: ")
+
+# preprocess query
+query = query.lower()
+query = re.sub(r'[^a-z ]', '', query)
+
+qv = vec.transform([query])
+
+# Step 6: Similarity calculation
+scores = cosine_similarity(mat, qv).ravel()
+print (scores)
+
+# Step 7: Find best match
+best_index = np.argmax(scores)
+
+# Step 8: Display result
+print("Most Relevant Document:")
+print(docs[best_index])
